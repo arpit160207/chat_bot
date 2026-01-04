@@ -245,6 +245,61 @@ body {
 .input-area-container {
     padding: 20px 30px 30px;
     background: linear-gradient(to top, var(--bg-color) 20%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file-preview-container {
+    display: flex;
+    padding: 0 10px;
+}
+
+.file-preview-item {
+    background: var(--glass-highlight);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    max-width: 200px;
+}
+
+.file-preview-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+#file-name-preview {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+#remove-file-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-primary);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+}
+
+#remove-file-btn:hover {
+    background: rgba(255, 50, 50, 0.4);
 }
 
 .input-area-glass {

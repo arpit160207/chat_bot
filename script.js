@@ -5,36 +5,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('send-btn');
     const welcomeMessage = document.querySelector('.welcome-message');
 
-    // Enable/Disable send button based on input
-    userInput.addEventListener('input', () => {
+    const fileInput = document.getElementById('file-input');
+    const attachBtn = document.getElementById('attach-btn');
+    const filePreviewContainer = document.getElementById('file-preview-container');
+    const filePreviewImg = document.getElementById('file-preview-img');
+    const fileNamePreview = document.getElementById('file-name-preview');
+    const removeFileBtn = document.getElementById('remove-file-btn');
+
+    let selectedFile = null;
+
+    // Attach Button Click
+    attachBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // File Selected
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            selectedFile = e.target.files[0];
+            showPreview(selectedFile);
+        }
+    });
+
+    // Remove File
+    removeFileBtn.addEventListener('click', () => {
+        selectedFile = null;
+        fileInput.value = '';
+        filePreviewContainer.style.display = 'none';
         sendBtn.disabled = userInput.value.trim() === '';
+    });
+
+    function showPreview(file) {
+        filePreviewContainer.style.display = 'flex';
+        fileNamePreview.textContent = file.name;
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                filePreviewImg.src = e.target.result;
+                filePreviewImg.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            filePreviewImg.style.display = 'none';
+        }
+        sendBtn.disabled = false; // Enable send if file is present
+    }
+
+    // Enable/Disable send button logic also needs to verify file presence
+    userInput.addEventListener('input', () => {
+        sendBtn.disabled = (userInput.value.trim() === '' && !selectedFile);
     });
 
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = userInput.value.trim();
-        if (!message) return;
 
-        // Hide welcome message on first chat
+        if (!message && !selectedFile) return;
+
         if (welcomeMessage) {
             welcomeMessage.style.display = 'none';
         }
 
-        // Add User Message
-        addMessage(message, 'user');
+        // Add User Message (Text + Optional File Indicator)
+        let displayMsg = message;
+        if (selectedFile) {
+            displayMsg += `\n*[Attached: ${selectedFile.name}]*`;
+        }
+
+        addMessage(displayMsg, 'user');
+
+        // Reset Inputs
         userInput.value = '';
+        const fileToSend = selectedFile; // Capture for sending
+
+        // Reset UI immediately
+        selectedFile = null;
+        fileInput.value = '';
+        filePreviewContainer.style.display = 'none';
         sendBtn.disabled = true;
 
-        // Show Loading Indicator
         const loadingId = addLoadingIndicator();
 
         try {
+            // Use FormData for multipart upload
+            const formData = new FormData();
+            formData.append('message', message);
+            if (fileToSend) {
+                formData.append('file', fileToSend);
+            }
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message })
+                // Content-Type header not set manually to let browser set boundary
+                body: formData
             });
 
             const data = await response.json();

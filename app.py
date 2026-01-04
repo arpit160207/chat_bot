@@ -49,11 +49,32 @@ MODELS_TO_TRY = [
 @app.route('/api/chat', methods=['POST'])
 def chat():
     try:
-        data = request.json
-        user_message = data.get('message')
-        
-        if not user_message:
-            return jsonify({"error": "No message provided"}), 400
+        # Handle both JSON (text only) and Multipart (file upload)
+        user_message = ""
+        file_part = None
+
+        if request.is_json:
+            user_message = request.json.get('message')
+        else:
+            user_message = request.form.get('message')
+            if 'file' in request.files:
+                file = request.files['file']
+                if file.filename != '':
+                    file_bytes = file.read()
+                    file_part = types.Part.from_bytes(
+                        data=file_bytes,
+                        mime_type=file.content_type
+                    )
+
+        if not user_message and not file_part:
+             return jsonify({"error": "No message or file provided"}), 400
+
+        # Construct contents list
+        contents = []
+        if user_message:
+            contents.append(user_message)
+        if file_part:
+            contents.append(file_part)
 
         last_error = None
         
@@ -63,7 +84,7 @@ def chat():
                 # print(f"Trying model: {model_name}...") 
                 response = client.models.generate_content(
                     model=model_name, 
-                    contents=user_message
+                    contents=contents
                 )
                 # If successful, return immediately
                 return jsonify({"response": response.text})
@@ -72,7 +93,6 @@ def chat():
                 print(f"Model {model_name} failed: {error_str[:100]}...")
                 last_error = error_str
                 # If it's a 429 or 404, we continue to the next model.
-                # If it's something else (like auth), it might fail for all, but we try anyway.
                 continue
 
         # If we get here, ALL models failed
