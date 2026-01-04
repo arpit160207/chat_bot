@@ -46,8 +46,18 @@ MODELS_TO_TRY = [
     'gemini-exp-1206'
 ]
 
+# Global Chat History
+CHAT_HISTORY = []
+
+@app.route('/api/reset', methods=['POST'])
+def reset_chat():
+    global CHAT_HISTORY
+    CHAT_HISTORY = []
+    return jsonify({"message": "Chat history cleared"})
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
+    global CHAT_HISTORY
     try:
         # Handle both JSON (text only) and Multipart (file upload)
         user_message = ""
@@ -69,12 +79,18 @@ def chat():
         if not user_message and not file_part:
              return jsonify({"error": "No message or file provided"}), 400
 
-        # Construct contents list
-        contents = []
+        # Construct current turn content
+        current_parts = []
         if user_message:
-            contents.append(user_message)
+            current_parts.append(types.Part.from_text(text=user_message))
         if file_part:
-            contents.append(file_part)
+            current_parts.append(file_part)
+            
+        user_content = types.Content(role="user", parts=current_parts)
+
+        # Prepare full history for the model
+        # We create a temporary list so we don't commit to history unless successful
+        conversation_context = CHAT_HISTORY + [user_content]
 
         last_error = None
         
@@ -84,10 +100,19 @@ def chat():
                 # print(f"Trying model: {model_name}...") 
                 response = client.models.generate_content(
                     model=model_name, 
-                    contents=contents
+                    contents=conversation_context
                 )
-                # If successful, return immediately
-                return jsonify({"response": response.text})
+                
+                # Success! Update global history
+                CHAT_HISTORY.append(user_content)
+                
+                # Add model response to history
+                # We need to construct a Content object from the response text to store it
+                model_text = response.text
+                model_content = types.Content(role="model", parts=[types.Part.from_text(text=model_text)])
+                CHAT_HISTORY.append(model_content)
+
+                return jsonify({"response": model_text})
             except Exception as e:
                 error_str = str(e)
                 print(f"Model {model_name} failed: {error_str[:100]}...")

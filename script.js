@@ -11,8 +11,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const filePreviewImg = document.getElementById('file-preview-img');
     const fileNamePreview = document.getElementById('file-name-preview');
     const removeFileBtn = document.getElementById('remove-file-btn');
+    const newChatBtn = document.getElementById('new-chat-btn');
 
     let selectedFile = null;
+
+    // New Chat Button Logic
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', async () => {
+            // Clear Frontend
+            chatArea.innerHTML = '';
+            // Re-show welcome message if it exists
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'flex';
+                chatArea.appendChild(welcomeMessage);
+            }
+
+            // Clear Backend History
+            try {
+                await fetch('/api/reset', { method: 'POST' });
+            } catch (e) {
+                console.error("Failed to reset chat:", e);
+            }
+        });
+    }
 
     // Attach Button Click
     attachBtn.addEventListener('click', () => {
