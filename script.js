@@ -156,23 +156,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = document.createElement('div');
         content.classList.add('message-content');
 
-        if (sender === 'ai') {
-            // Parse Markdown
-            content.innerHTML = marked.parse(text);
-            // Highlight code blocks
-            content.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightElement(block);
-            });
-        } else {
-            content.textContent = text;
-        }
-
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(content);
         chatArea.appendChild(messageDiv);
-
-        // Scroll to bottom
         chatArea.scrollTop = chatArea.scrollHeight;
+
+        if (sender === 'ai') {
+            // Typewriter Effect for AI
+            let index = 0;
+            const speed = 15; // ms per char
+
+            function typeWriter() {
+                if (index < text.length) {
+                    content.textContent += text.charAt(index);
+                    index++;
+                    chatArea.scrollTop = chatArea.scrollHeight; // Auto-scroll
+                    setTimeout(typeWriter, speed);
+                } else {
+                    // Finished typing, render Markdown
+                    content.innerHTML = marked.parse(text);
+                    content.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                }
+            }
+            typeWriter();
+        } else {
+            // User message is instant
+            content.textContent = text;
+        }
     }
 
     function addLoadingIndicator() {
@@ -198,7 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(content);
         chatArea.appendChild(messageDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
+
+        requestAnimationFrame(() => {
+            chatArea.scrollTop = chatArea.scrollHeight;
+        });
 
         return id;
     }
@@ -209,4 +225,5 @@ document.addEventListener('DOMContentLoaded', () => {
             element.remove();
         }
     }
-});
+
+

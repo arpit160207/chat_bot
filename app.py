@@ -25,6 +25,8 @@ if not api_key:
 
 if not api_key:
     print("CRITICAL: GEMINI_API_KEY missing.")
+else:
+    print(f"DEBUG: Loaded API Key: {api_key[:5]}...{api_key[-5:] if len(api_key) > 10 else ''}")
 
 client = genai.Client(api_key=api_key)
 
@@ -46,7 +48,7 @@ MODELS_TO_TRY = [
     'gemini-exp-1206'
 ]
 
-# Global Chat History
+# Global Chat History (In-Memory Only)
 CHAT_HISTORY = []
 
 @app.route('/api/reset', methods=['POST'])
@@ -89,7 +91,6 @@ def chat():
         user_content = types.Content(role="user", parts=current_parts)
 
         # Prepare full history for the model
-        # We create a temporary list so we don't commit to history unless successful
         conversation_context = CHAT_HISTORY + [user_content]
 
         last_error = None
@@ -98,16 +99,24 @@ def chat():
         for model_name in MODELS_TO_TRY:
             try:
                 # print(f"Trying model: {model_name}...") 
+                
+                # Define system instruction for persona
+                sys_instruct = "You are Arpit AI, a helpful and friendly assistant. Be polite and engaging, using emojis to keep the conversation lively, but maintain a professional tone. 🌟😊"
+                
+                config = types.GenerateContentConfig(
+                    system_instruction=sys_instruct
+                )
+
                 response = client.models.generate_content(
                     model=model_name, 
-                    contents=conversation_context
+                    contents=conversation_context,
+                    config=config
                 )
                 
                 # Success! Update global history
                 CHAT_HISTORY.append(user_content)
                 
                 # Add model response to history
-                # We need to construct a Content object from the response text to store it
                 model_text = response.text
                 model_content = types.Content(role="model", parts=[types.Part.from_text(text=model_text)])
                 CHAT_HISTORY.append(model_content)
