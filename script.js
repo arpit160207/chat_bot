@@ -225,5 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             element.remove();
         }
     }
+});
+
 
 
